@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CityWalk — прогулки по Астане</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#top"><span class="brand-mark">✦</span><span>City<span>Walk</span></span></a>
+      <nav class="desktop-nav"><a class="active" href="#routes">Маршруты</a><a href="#places">Места</a><a href="#about">О сервисе</a></nav>
+      <button class="profile-btn" aria-label="Профиль">ДМ</button>
+    </header>
+
+    <main id="top">
+      <section class="hero section-width">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="pulse"></span> Идеи для прогулок по Астане</div>
+          <h1>Город, который<br><em>хочется исследовать.</em></h1>
+          <p>Соберите маршрут под своё настроение, время и бюджет — мы позаботимся об остальном.</p>
+          <div class="hero-actions"><a class="primary-btn" href="#builder">Создать маршрут <span>→</span></a><a class="text-btn" href="#routes">Смотреть подборки</a></div>
+        </div>
+        <div class="hero-art"><div class="sun"></div><div class="cityline cityline-back"></div><div class="cityline cityline-front"></div><div class="hero-note note-one">☀️ <b>+18°</b><small>Отличная погода</small></div><div class="hero-note note-two">⌖ <b>24</b><small>места рядом</small></div></div>
+      </section>
+
+      <section class="builder section-width" id="builder">
+        <div class="section-heading"><div><span class="eyebrow">Быстрый старт</span><h2>Куда отправимся сегодня?</h2></div><span class="step">01 / 03</span></div>
+        <div class="builder-card">
+          <label>Какое настроение?</label><div class="mood-list"><button class="mood active">☕ <span>Уютно</span></button><button class="mood">🏛️ <span>Познавательно</span></button><button class="mood">🌿 <span>На природе</span></button><button class="mood">✨ <span>Неважно</span></button></div>
+          <div class="builder-grid"><div class="field"><small>Длительность</small><strong>◷ До 3 часов⌄</strong></div><div class="field"><small>Формат</small><strong>♧ Пешком⌄</strong></div><button class="build-btn">Построить маршрут <span>→</span></button></div>
+        </div>
+      </section>
+
+      <section class="routes section-width" id="routes"><div class="section-heading"><div><span class="eyebrow">Выбор редакции</span><h2>Популярные маршруты</h2></div><a class="all-link" href="#places">Все маршруты →</a></div><div class="route-grid">
+        <article class="route-card card-blue"><div class="card-visual visual-bayterek"><span class="tag">Хит недели</span><span class="save">♡</span><div class="landmark">✦</div></div><div class="card-content"><h3>Символы столицы</h3><p>Байтерек · Нуржол · Акмешит</p><div class="meta"><span>◷ 2 ч 30 мин</span><span>♧ 4.8 км</span></div></div></article>
+        <article class="route-card card-sand"><div class="card-visual visual-park"><span class="tag">Спокойная прогулка</span><span class="save">♡</span><div class="tree">♣</div></div><div class="card-content"><h3>Зелёный оазис</h3><p>Ботанический сад · EXPO</p><div class="meta"><span>◷ 3 ч 10 мин</span><span>♧ 6.2 км</span></div></div></article>
+        <article class="route-card card-pink"><div class="card-visual visual-evening"><span class="tag">Вечерний маршрут</span><span class="save">♡</span><div class="moon">☾</div></div><div class="card-content"><h3>Огни большого города</h3><p>Набережная · Арбат · Керуен</p><div class="meta"><span>◷ 1 ч 45 мин</span><span>♧ 3.1 км</span></div></div></article>
+      </div></section>
+
+      <section class="places section-width" id="places"><div class="section-heading"><div><span class="eyebrow">Рядом с вами</span><h2>Интересные места</h2></div></div><div class="place-list"><div class="place"><div class="place-icon blue">⌖</div><div><h3>Национальный музей</h3><p>Музеи · Открыто до 20:00</p></div><span class="rating">★ 4.9</span></div><div class="place"><div class="place-icon orange">☕</div><div><h3>Шоколадница на Нуржол</h3><p>Кафе · 0.4 км от вас</p></div><span class="rating">★ 4.7</span></div><div class="place"><div class="place-icon green">♣</div><div><h3>Парк Влюблённых</h3><p>Отдых · Открыто всегда</p></div><span class="rating">★ 4.8</span></div></div></section>
+    </main>
+    <footer id="about"><div class="brand"><span class="brand-mark">✦</span><span>City<span>Walk</span></span></div><p>Исследуй Астану по-своему.</p><span>© 2026</span></footer>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
