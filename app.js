@@ -4,7 +4,7 @@ moods.forEach((mood) => mood.addEventListener('click', () => {
   mood.classList.add('active');
 }));
 
-document.querySelector('.build-btn').addEventListener('click', () => {
+document.querySelector('.build-btn:not(#route-build)').addEventListener('click', () => {
   const button = document.querySelector('.build-btn');
   button.innerHTML = 'Маршрут готов <span>✓</span>';
   button.style.background = '#3a8d84';
@@ -56,3 +56,39 @@ document.querySelectorAll('.field').forEach((field) => field.addEventListener('c
 document.querySelectorAll('.route-card').forEach((card) => card.addEventListener('click', (event) => {
   if (!event.target.classList.contains('save')) showToast(`Маршрут «${card.querySelector('h3').textContent}» выбран`);
 }));
+
+let routeLine;
+const routeBuild = document.querySelector('#route-build');
+const routeResult = document.querySelector('#route-result');
+const geocode = async (query) => {
+  const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=kz&q=${encodeURIComponent(query)}`, { headers: { Accept: 'application/json' } });
+  const places = await response.json();
+  if (!places.length) throw new Error(`Не нашли: ${query}`);
+  return [Number(places[0].lat), Number(places[0].lon)];
+};
+routeBuild.addEventListener('click', async () => {
+  const from = document.querySelector('#route-from').value.trim();
+  const to = document.querySelector('#route-to').value.trim();
+  if (!from || !to) return showToast('Укажите начальную и конечную точки');
+  routeBuild.disabled = true;
+  routeBuild.innerHTML = 'Ищем маршрут…';
+  try {
+    const [start, finish] = await Promise.all([geocode(from), geocode(to)]);
+    const response = await fetch(`https://router.project-osrm.org/route/v1/foot/${start[1]},${start[0]};${finish[1]},${finish[0]}?overview=full&geometries=geojson`);
+    const data = await response.json();
+    if (!data.routes?.length) throw new Error('Маршрут не найден');
+    if (routeLine) cityMap.removeLayer(routeLine);
+    routeLine = L.geoJSON(data.routes[0].geometry, { style: { color: '#146b68', weight: 6, opacity: .85 } }).addTo(cityMap);
+    cityMap.fitBounds(routeLine.getBounds(), { padding: [35, 35] });
+    const distance = (data.routes[0].distance / 1000).toFixed(1);
+    const minutes = Math.max(1, Math.round(data.routes[0].duration / 60));
+    routeResult.textContent = `${distance} км · примерно ${minutes} мин пешком`;
+    showToast('Маршрут построен на карте');
+  } catch (error) {
+    showToast(error.message || 'Не удалось построить маршрут');
+    routeResult.textContent = 'Проверьте названия мест';
+  } finally {
+    routeBuild.disabled = false;
+    routeBuild.innerHTML = 'Построить маршрут <span>→</span>';
+  }
+});
