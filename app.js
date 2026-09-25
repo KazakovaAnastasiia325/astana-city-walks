@@ -4,16 +4,6 @@ moods.forEach((mood) => mood.addEventListener('click', () => {
   mood.classList.add('active');
 }));
 
-document.querySelector('.build-btn:not(#route-build)').addEventListener('click', () => {
-  const button = document.querySelector('.build-btn');
-  button.innerHTML = 'Маршрут готов <span>✓</span>';
-  button.style.background = '#3a8d84';
-  setTimeout(() => {
-    button.innerHTML = 'Построить маршрут <span>→</span>';
-    button.style.background = '';
-  }, 2200);
-});
-
 document.querySelectorAll('.save').forEach((save) => save.addEventListener('click', () => {
   save.textContent = save.textContent === '♡' ? '♥' : '♡';
 }));
