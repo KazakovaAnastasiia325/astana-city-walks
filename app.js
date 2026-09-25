@@ -17,3 +17,16 @@ document.querySelector('.build-btn').addEventListener('click', () => {
 document.querySelectorAll('.save').forEach((save) => save.addEventListener('click', () => {
   save.textContent = save.textContent === '♡' ? '♥' : '♡';
 }));
+
+const cityMap = L.map('city-map', { zoomControl: false }).setView([51.125, 71.43], 12.5);
+L.control.zoom({ position: 'bottomright' }).addTo(cityMap);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(cityMap);
+const locations = [
+  { name: 'Байтерек', type: 'Символ столицы', lat: 51.1283, lng: 71.4304, icon: '⌖' },
+  { name: 'Ботанический сад', type: 'Прогулки и природа', lat: 51.0904, lng: 71.4171, icon: '♣' },
+  { name: 'Территория EXPO', type: 'Архитектура и события', lat: 51.0907, lng: 71.4188, icon: '☕' },
+  { name: 'Национальный музей', type: 'История и культура', lat: 51.1256, lng: 71.4681, icon: '⌖' },
+];
+const pinIcon = (icon) => L.divIcon({ className: 'custom-pin-wrap', html: `<div class="custom-pin"><span>${icon}</span></div>`, iconSize: [34, 34], iconAnchor: [17, 34], popupAnchor: [0, -30] });
+const markers = locations.map((place) => L.marker([place.lat, place.lng], { icon: pinIcon(place.icon) }).addTo(cityMap).bindPopup(`<b>${place.name}</b><br><span style="color:#74858b">${place.type}</span>`));
+document.querySelectorAll('.map-place').forEach((button) => button.addEventListener('click', () => { const index = Number(button.dataset.index); cityMap.flyTo([locations[index].lat, locations[index].lng], 15, { duration: 0.8 }); markers[index].openPopup(); }));

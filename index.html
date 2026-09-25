@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="map.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 </head>
 <body>
   <div class="app-shell">
@@ -43,9 +45,11 @@
       </div></section>
 
       <section class="places section-width" id="places"><div class="section-heading"><div><span class="eyebrow">Рядом с вами</span><h2>Интересные места</h2></div></div><div class="place-list"><div class="place"><div class="place-icon blue">⌖</div><div><h3>Национальный музей</h3><p>Музеи · Открыто до 20:00</p></div><span class="rating">★ 4.9</span></div><div class="place"><div class="place-icon orange">☕</div><div><h3>Шоколадница на Нуржол</h3><p>Кафе · 0.4 км от вас</p></div><span class="rating">★ 4.7</span></div><div class="place"><div class="place-icon green">♣</div><div><h3>Парк Влюблённых</h3><p>Отдых · Открыто всегда</p></div><span class="rating">★ 4.8</span></div></div></section>
+      <section class="map-section section-width" id="map-section"><div class="section-heading"><div><span class="eyebrow">Исследуйте город</span><h2>Места на карте</h2></div><span class="map-status"><span></span> Астана, Казахстан</span></div><div class="map-layout"><div id="city-map"></div><aside class="map-legend"><h3>Популярные места</h3><p class="legend-hint">Нажмите на точку, чтобы узнать больше</p><button class="map-place" data-index="0"><span class="legend-dot museum">⌖</span><span><b>Байтерек</b><small>Символ столицы · ★ 4.9</small></span><strong>›</strong></button><button class="map-place" data-index="1"><span class="legend-dot park">♣</span><span><b>Ботанический сад</b><small>Прогулки · ★ 4.8</small></span><strong>›</strong></button><button class="map-place" data-index="2"><span class="legend-dot cafe">☕</span><span><b>Территория EXPO</b><small>Архитектура · ★ 4.7</small></span><strong>›</strong></button><button class="map-place" data-index="3"><span class="legend-dot museum">⌖</span><span><b>Национальный музей</b><small>Культура · ★ 4.9</small></span><strong>›</strong></button></aside></div></section>
     </main>
     <footer id="about"><div class="brand"><span class="brand-mark">✦</span><span>City<span>Walk</span></span></div><p>Исследуй Астану по-своему.</p><span>© 2026</span></footer>
   </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="app.js"></script>
 </body>
 </html>
