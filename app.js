@@ -61,6 +61,8 @@ let routeLine;
 const routeBuild = document.querySelector('#route-build');
 const routeResult = document.querySelector('#route-result');
 const geocode = async (query) => {
+  const known = locations.find((place) => query.toLowerCase().includes(place.name.toLowerCase()));
+  if (known) return [known.lat, known.lng];
   const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=kz&q=${encodeURIComponent(query)}`, { headers: { Accept: 'application/json' } });
   const places = await response.json();
   if (!places.length) throw new Error(`Не нашли: ${query}`);
@@ -74,14 +76,18 @@ routeBuild.addEventListener('click', async () => {
   routeBuild.innerHTML = 'Ищем маршрут…';
   try {
     const [start, finish] = await Promise.all([geocode(from), geocode(to)]);
-    const response = await fetch(`https://router.project-osrm.org/route/v1/foot/${start[1]},${start[0]};${finish[1]},${finish[0]}?overview=full&geometries=geojson`);
-    const data = await response.json();
-    if (!data.routes?.length) throw new Error('Маршрут не найден');
+    let routeData;
+    try {
+      const response = await fetch(`https://router.project-osrm.org/route/v1/foot/${start[1]},${start[0]};${finish[1]},${finish[0]}?overview=full&geometries=geojson`);
+      const data = await response.json();
+      routeData = data.routes?.[0];
+    } catch { routeData = null; }
     if (routeLine) cityMap.removeLayer(routeLine);
-    routeLine = L.geoJSON(data.routes[0].geometry, { style: { color: '#146b68', weight: 6, opacity: .85 } }).addTo(cityMap);
+    const geometry = routeData?.geometry || { type: 'LineString', coordinates: [[start[1], start[0]], [finish[1], finish[0]]] };
+    routeLine = L.geoJSON(geometry, { style: { color: '#146b68', weight: 6, opacity: .85, dashArray: routeData ? null : '8 8' } }).addTo(cityMap);
     cityMap.fitBounds(routeLine.getBounds(), { padding: [35, 35] });
-    const distance = (data.routes[0].distance / 1000).toFixed(1);
-    const minutes = Math.max(1, Math.round(data.routes[0].duration / 60));
+    const distance = routeData ? (routeData.distance / 1000).toFixed(1) : (Math.hypot((finish[0] - start[0]) * 111, (finish[1] - start[1]) * 69) * 1.25).toFixed(1);
+    const minutes = routeData ? Math.max(1, Math.round(routeData.duration / 60)) : Math.max(1, Math.round(Number(distance) * 12));
     routeResult.textContent = `${distance} км · примерно ${minutes} мин пешком`;
     showToast('Маршрут построен на карте');
   } catch (error) {
