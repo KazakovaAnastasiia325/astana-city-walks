@@ -17,9 +17,13 @@ const locations = [
   { name: 'Ботанический сад', type: 'Прогулки и природа', category: 'park photo', lat: 51.0904, lng: 71.4171, icon: '♣' },
   { name: 'Территория EXPO', type: 'Архитектура и события', category: 'architecture photo', lat: 51.0907, lng: 71.4188, icon: '☕' },
   { name: 'Национальный музей', type: 'История и культура', category: 'architecture photo', lat: 51.1256, lng: 71.4681, icon: '⌖' },
-  { name: 'Кофейня на Нуржол', type: 'Кофейня', category: 'cafe', lat: 51.1288, lng: 71.4318, icon: '☕' },
+  { name: 'Кофейня на Нуржол', type: 'Кофейня', category: 'cafe food', lat: 51.1288, lng: 71.4318, icon: '☕' },
   { name: 'Парк Влюблённых', type: 'Парк', category: 'park photo', lat: 51.1322, lng: 71.4237, icon: '♣' },
   { name: 'Арбат Астаны', type: 'Прогулочная улица', category: 'photo architecture', lat: 51.1343, lng: 71.4314, icon: '📸' },
+  { name: 'Театр оперы и балета', type: 'Культура и история', category: 'history architecture', lat: 51.1275, lng: 71.4272, icon: '🎭' },
+  { name: 'ТРЦ Хан Шатыр', type: 'Покупки и архитектура', category: 'shopping architecture', lat: 51.1326, lng: 71.4037, icon: '🛍️' },
+  { name: 'Набережная Ишима', type: 'Вечерняя прогулка', category: 'night photo park', lat: 51.1281, lng: 71.4358, icon: '🌙' },
+  { name: 'Ресторан на левом берегу', type: 'Еда и отдых', category: 'food', lat: 51.1267, lng: 71.4311, icon: '🍽️' },
 ];
 const pinIcon = (icon) => L.divIcon({ className: 'custom-pin-wrap', html: `<div class="custom-pin"><span>${icon}</span></div>`, iconSize: [34, 34], iconAnchor: [17, 34], popupAnchor: [0, -30] });
 const markers = locations.map((place) => L.marker([place.lat, place.lng], { icon: pinIcon(place.icon) }).addTo(cityMap).bindPopup(`<b>${place.name}</b><br><span style="color:#74858b">${place.type}</span>`));
@@ -74,17 +78,20 @@ const renderNearby = (center = [51.1283, 71.4304]) => {
 renderNearby();
 document.querySelector('#area-search-btn').addEventListener('click', async () => { const query = document.querySelector('#area-query').value.trim(); if (!query) return showToast('Напиши район или точку'); try { const center = await geocode(query); cityMap.flyTo(center, 14); renderNearby(center); showToast('Нашли места рядом'); } catch { showToast('Точку не удалось найти'); } });
 document.querySelectorAll('.mood').forEach((mood) => mood.addEventListener('click', () => setTimeout(() => renderNearby(), 0)));
+document.querySelector('#clear-selection').addEventListener('click', () => { selectedPlaces = []; document.querySelectorAll('.nearby-place input').forEach((input) => { input.checked = false; }); if (routeLine) { cityMap.removeLayer(routeLine); routeLine = null; } routeResult.textContent = 'Выбор очищен'; showToast('Выбор мест сброшен'); });
+document.querySelector('#add-interest').addEventListener('click', () => { const input = document.querySelector('#custom-interest'); const value = input.value.trim(); if (!value) return showToast('Напиши свой интерес'); const button = document.createElement('button'); button.className = 'mood active custom-mood'; button.dataset.category = `custom-${Date.now()}`; button.innerHTML = `✦ <span>${value}</span>`; button.addEventListener('click', () => { button.classList.toggle('active'); renderNearby(); }); document.querySelector('.mood-list').appendChild(button); input.value = ''; showToast(`Интерес «${value}» добавлен`); });
 routeBuild.addEventListener('click', async () => {
-  const from = document.querySelector('#route-from').value.trim();
-  const to = document.querySelector('#route-to').value.trim();
-  if (!from || !to) return showToast('Укажите начальную и конечную точки');
+  const area = document.querySelector('#area-query').value.trim();
+  if (!area) return showToast('Сначала укажите район или точку поиска');
   routeBuild.disabled = true;
   routeBuild.innerHTML = 'Ищем маршрут…';
   const time = document.querySelector('.time-option.active').textContent;
   const interests = [...document.querySelectorAll('.mood.active')].map((item) => item.textContent.trim()).join(', ');
   try {
-    const [start, finish] = await Promise.all([geocode(from), geocode(to)]);
-    const waypoints = [start, ...selectedPlaces.map((place) => [place.lat, place.lng]), finish];
+    const start = await geocode(area);
+    const chosen = selectedPlaces.length ? selectedPlaces : locations.filter((place) => distance(start, place) < 3).slice(0, 3);
+    if (!chosen.length) throw new Error('Выберите хотя бы одно место рядом');
+    const waypoints = [start, ...chosen.map((place) => [place.lat, place.lng])];
     let routeData;
     try {
       const response = await fetch(`https://router.project-osrm.org/route/v1/foot/${waypoints.map((point) => `${point[1]},${point[0]}`).join(';')}?overview=full&geometries=geojson`);
