@@ -3,6 +3,10 @@ moods.forEach((mood) => mood.addEventListener('click', () => {
   moods.forEach((item) => item.classList.remove('active'));
   mood.classList.add('active');
 }));
+document.querySelectorAll('.time-option').forEach((option) => option.addEventListener('click', () => {
+  document.querySelectorAll('.time-option').forEach((item) => item.classList.remove('active'));
+  option.classList.add('active');
+}));
 
 document.querySelectorAll('.save').forEach((save) => save.addEventListener('click', () => {
   save.textContent = save.textContent === '♡' ? '♥' : '♡';
@@ -64,6 +68,8 @@ routeBuild.addEventListener('click', async () => {
   if (!from || !to) return showToast('Укажите начальную и конечную точки');
   routeBuild.disabled = true;
   routeBuild.innerHTML = 'Ищем маршрут…';
+  const time = document.querySelector('.time-option.active').textContent;
+  const interests = [...document.querySelectorAll('.mood.active')].map((item) => item.textContent.trim()).join(', ');
   try {
     const [start, finish] = await Promise.all([geocode(from), geocode(to)]);
     let routeData;
@@ -79,7 +85,7 @@ routeBuild.addEventListener('click', async () => {
     const distance = routeData ? (routeData.distance / 1000).toFixed(1) : (Math.hypot((finish[0] - start[0]) * 111, (finish[1] - start[1]) * 69) * 1.25).toFixed(1);
     const minutes = routeData ? Math.max(1, Math.round(routeData.duration / 60)) : Math.max(1, Math.round(Number(distance) * 12));
     routeResult.textContent = `${distance} км · примерно ${minutes} мин пешком`;
-    showToast('Маршрут построен на карте');
+    showToast(`Маршрут создан: ${time} · ${interests}`);
   } catch (error) {
     showToast(error.message || 'Не удалось построить маршрут');
     routeResult.textContent = 'Проверьте названия мест';
