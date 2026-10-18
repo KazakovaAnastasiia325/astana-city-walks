@@ -9,6 +9,12 @@ const overpassFilters = {
   park: '["leisure"~"park|garden|nature_reserve|playground"]',
   photo: '["tourism"~"attraction|viewpoint"]',
 };
+const overpassStatements = {
+  cafe: (lat, lon) => `nwr(around:3500,${lat},${lon})["amenity"~"cafe|restaurant|fast_food|bar|bakery|ice_cream"];`,
+  architecture: (lat, lon) => `nwr(around:3500,${lat},${lon})["tourism"~"museum|attraction|gallery|viewpoint|theme_park"];nwr(around:3500,${lat},${lon})["historic"];nwr(around:3500,${lat},${lon})["amenity"="theatre"];`,
+  park: (lat, lon) => `nwr(around:3500,${lat},${lon})["leisure"~"park|garden|nature_reserve|playground"];`,
+  photo: (lat, lon) => `nwr(around:3500,${lat},${lon})["tourism"~"attraction|viewpoint"];nwr(around:3500,${lat},${lon})["historic"];nwr(around:3500,${lat},${lon})["artwork_type"];`,
+};
 const featuredPlaces = [
   { id: 'featured-baiterek', name: 'Байтерек', wiki: 'Байтерек', lat: 51.1283, lon: 71.4304, icon: '🏛️', description: 'Главный символ Астаны и одна из самых узнаваемых точек города.' },
   { id: 'featured-museum', name: 'Национальный музей Казахстана', wiki: 'Национальный музей Республики Казахстан', lat: 51.1256, lon: 71.4681, icon: '🏺', description: 'Большой музейный комплекс с экспозициями об истории и культуре Казахстана.' },
@@ -42,7 +48,7 @@ const proxyPopular = async (res) => {
 const placesQuery = (lat, lon, categories) => {
   const selected = categories.filter((category) => overpassFilters[category]);
   const active = selected.length ? selected : Object.keys(overpassFilters);
-  const statements = active.map((category) => `nwr(around:3500,${lat},${lon})${overpassFilters[category]};`).join('');
+  const statements = active.map((category) => overpassStatements[category](lat, lon)).join('');
   return `[out:json][timeout:25];(${statements});out center tags;`;
 };
 const sendJson = (res, status, payload) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }); res.end(JSON.stringify(payload)); };

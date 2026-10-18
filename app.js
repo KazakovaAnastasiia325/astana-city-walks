@@ -50,11 +50,16 @@ const fallbackLocations = [
   { id: 'fallback-expo', name: 'Территория EXPO', type: 'Архитектура и культура', category: 'architecture', lat: 51.0907, lng: 71.4188, icon: '🏛️' },
   { id: 'fallback-park', name: 'Парк Влюблённых', type: 'Парки и природа', category: 'park', lat: 51.1322, lng: 71.4237, icon: '🌳' },
   { id: 'fallback-cafe', name: 'Кофейни на Нуржол', type: 'Кафе и еда', category: 'cafe', lat: 51.1288, lng: 71.4318, icon: '☕' },
+  { id: 'fallback-photo-embankment', name: 'Набережная Ишима', type: 'Места для фото', category: 'photo', lat: 51.1281, lng: 71.4358, icon: '📸' },
+  { id: 'fallback-photo-arbat', name: 'Арбат Астаны', type: 'Места для фото', category: 'photo', lat: 51.1343, lng: 71.4314, icon: '📸' },
+  { id: 'fallback-photo-baiterek', name: 'Площадь у Байтерека', type: 'Места для фото', category: 'photo', lat: 51.1283, lng: 71.4304, icon: '📸' },
 ];
 const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
 const pinIcon = (icon) => L.divIcon({ className: 'custom-pin-wrap', html: `<div class="custom-pin"><span>${icon}</span></div>`, iconSize: [34, 34], iconAnchor: [17, 34], popupAnchor: [0, -30] });
 const placeCategory = (tags = {}) => {
-  if (tags.amenity) return 'cafe';
+  if (tags.amenity && /cafe|restaurant|fast_food|bar|bakery|ice_cream/.test(tags.amenity)) return 'cafe';
+  if (tags.historic || tags.amenity === 'theatre') return 'architecture';
+  if (tags.artwork_type) return 'photo';
   if (tags.leisure) return 'park';
   return tags.tourism ? 'architecture' : 'photo';
 };
@@ -99,7 +104,7 @@ const loadPlaces = async (center, notify = false) => {
   }
   const unique = new Map();
   (data.elements || []).map(formatPlace).filter((place) => Number.isFinite(place.lat) && Number.isFinite(place.lng)).forEach((place) => { if (!unique.has(place.name)) unique.set(place.name, place); });
-  locations = [...unique.values()].sort((a, b) => distance(center, a) - distance(center, b)).slice(0, 80);
+  locations = unique.size ? [...unique.values()].sort((a, b) => distance(center, a) - distance(center, b)).slice(0, 80) : fallbackLocations;
   selectedPlaces = selectedPlaces.filter((selected) => locations.some((place) => place.id === selected.id));
   renderMapMarkers(); renderNearby(center);
   if (notify) showToast(`Нашли ${locations.length} мест рядом`);
