@@ -57,9 +57,11 @@ document.querySelectorAll('.route-card').forEach((card) => card.addEventListener
 
 let routeLine;
 let selectedPlaces = [];
+let currentLocation = null;
 const routeBuild = document.querySelector('#route-build');
 const routeResult = document.querySelector('#route-result');
 const geocode = async (query) => {
+  if (currentLocation && query === 'Моё местоположение') return currentLocation;
   const known = locations.find((place) => query.toLowerCase().includes(place.name.toLowerCase()));
   if (known) return [known.lat, known.lng];
   const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=kz&q=${encodeURIComponent(query)}`, { headers: { Accept: 'application/json' } });
@@ -77,6 +79,20 @@ const renderNearby = (center = [51.1283, 71.4304]) => {
 };
 renderNearby();
 document.querySelector('#area-search-btn').addEventListener('click', async () => { const query = document.querySelector('#area-query').value.trim(); if (!query) return showToast('Напиши район или точку'); try { const center = await geocode(query); cityMap.flyTo(center, 14); renderNearby(center); showToast('Нашли места рядом'); } catch { showToast('Точку не удалось найти'); } });
+document.querySelector('#location-btn').addEventListener('click', () => {
+  const status = document.querySelector('#location-status');
+  if (!navigator.geolocation) return showToast('Этот браузер не поддерживает геолокацию');
+  status.textContent = 'Определяем ваше местоположение…';
+  navigator.geolocation.getCurrentPosition((position) => {
+    currentLocation = [position.coords.latitude, position.coords.longitude];
+    document.querySelector('#area-query').value = 'Моё местоположение';
+    cityMap.flyTo(currentLocation, 15, { duration: 1 });
+    renderNearby(currentLocation);
+    L.circleMarker(currentLocation, { radius: 8, color: '#fff', weight: 3, fillColor: '#e56f61', fillOpacity: 1 }).addTo(cityMap).bindPopup('<b>Вы находитесь здесь</b>').openPopup();
+    status.textContent = 'Местоположение определено — маршрут начнётся отсюда';
+    showToast('Местоположение найдено');
+  }, () => { status.textContent = 'Не удалось получить геопозицию. Проверь разрешение браузера.'; showToast('Разрешите доступ к местоположению'); }, { enableHighAccuracy: true, timeout: 10000 });
+});
 document.querySelectorAll('.mood').forEach((mood) => mood.addEventListener('click', () => setTimeout(() => renderNearby(), 0)));
 document.querySelector('#clear-selection').addEventListener('click', () => { selectedPlaces = []; document.querySelectorAll('.nearby-place input').forEach((input) => { input.checked = false; }); if (routeLine) { cityMap.removeLayer(routeLine); routeLine = null; } routeResult.textContent = 'Выбор очищен'; showToast('Выбор мест сброшен'); });
 document.querySelector('#add-interest').addEventListener('click', () => { const input = document.querySelector('#custom-interest'); const value = input.value.trim(); if (!value) return showToast('Напиши свой интерес'); const button = document.createElement('button'); button.className = 'mood active custom-mood'; button.dataset.category = `custom-${Date.now()}`; button.innerHTML = `✦ <span>${value}</span>`; button.addEventListener('click', () => { button.classList.toggle('active'); renderNearby(); }); document.querySelector('.mood-list').appendChild(button); input.value = ''; showToast(`Интерес «${value}» добавлен`); });
