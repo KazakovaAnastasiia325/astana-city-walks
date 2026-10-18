@@ -172,6 +172,10 @@ let routeLine;
 let selectedPlaces = [];
 let currentLocation = null;
 let userMarker = null;
+let travelMode = 'foot';
+const modeLabels = { foot: 'Пешком', car: 'На машине', bus: 'На автобусе' };
+const modeHints = { foot: 'Расстояние и время прогулки будут рассчитаны автоматически', car: 'Время рассчитывается по дорожному маршруту', bus: 'Покажем примерное время с учётом ожидания автобуса' };
+document.querySelectorAll('.mode-option').forEach((button) => button.addEventListener('click', () => { document.querySelectorAll('.mode-option').forEach((item) => item.classList.remove('active')); button.classList.add('active'); travelMode = button.dataset.mode; document.querySelector('#mode-hint').textContent = modeHints[travelMode]; }));
 const routeBuild = document.querySelector('#route-build');
 const routeResult = document.querySelector('#route-result');
 const geocode = async (query) => {
@@ -258,18 +262,20 @@ routeBuild.addEventListener('click', async () => {
     const waypoints = [start, ...chosen.map((place) => [place.lat, place.lng])];
     let routeData;
     try {
-      const response = await fetch(`https://router.project-osrm.org/route/v1/foot/${waypoints.map((point) => `${point[1]},${point[0]}`).join(';')}?overview=full&geometries=geojson`);
+      const response = await fetch(`https://router.project-osrm.org/route/v1/driving/${waypoints.map((point) => `${point[1]},${point[0]}`).join(';')}?overview=full&geometries=geojson`);
       const data = await response.json();
       routeData = data.routes?.[0];
     } catch { routeData = null; }
     if (routeLine) cityMap.removeLayer(routeLine);
     const geometry = routeData?.geometry || { type: 'LineString', coordinates: waypoints.map((point) => [point[1], point[0]]) };
-    routeLine = L.geoJSON(geometry, { style: { color: '#146b68', weight: 6, opacity: .85, dashArray: routeData ? null : '8 8' } }).addTo(cityMap);
+    const routeColor = travelMode === 'car' ? '#d7833c' : travelMode === 'bus' ? '#5b68c8' : '#146b68';
+    routeLine = L.geoJSON(geometry, { style: { color: routeColor, weight: 6, opacity: .85, dashArray: routeData ? null : '8 8' } }).addTo(cityMap);
     cityMap.fitBounds(routeLine.getBounds(), { padding: [35, 35] });
-    const distance = routeData ? (routeData.distance / 1000).toFixed(1) : waypoints.slice(1).reduce((sum, point, index) => sum + Math.hypot((point[0] - waypoints[index][0]) * 111, (point[1] - waypoints[index][1]) * 69), 0).toFixed(1);
-    const minutes = routeData ? Math.max(1, Math.round(routeData.duration / 60)) : Math.max(1, Math.round(Number(distance) * 12));
-    routeResult.textContent = `${distance} км · примерно ${minutes} мин пешком`;
-    showToast(`Маршрут создан: ${time} · ${interests}`);
+    const distanceKm = routeData ? (routeData.distance / 1000).toFixed(1) : waypoints.slice(1).reduce((sum, point, index) => sum + Math.hypot((point[0] - waypoints[index][0]) * 111, (point[1] - waypoints[index][1]) * 69), 0).toFixed(1);
+    const minutes = travelMode === 'car' && routeData ? Math.max(1, Math.round(routeData.duration / 60)) : travelMode === 'bus' ? Math.max(5, Math.round(Number(distanceKm) / 18 * 60) + 10) : Math.max(1, Math.round(Number(distanceKm) / 5 * 60));
+    const estimateNote = travelMode === 'bus' ? ' · ориентировочно' : '';
+    routeResult.textContent = `${modeLabels[travelMode]} · ${distanceKm} км · примерно ${minutes} мин${estimateNote}`;
+    showToast(`Маршрут создан: ${modeLabels[travelMode]} · ${time} · ${interests || 'все места'}`);
   } catch (error) {
     showToast(error.message || 'Не удалось построить маршрут');
     routeResult.textContent = 'Проверьте названия мест';

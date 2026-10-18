@@ -21,7 +21,10 @@
 .route-actions .build-btn{min-width:205px}
 .clear-btn{padding:11px 4px}
 .builder-grid{display:none}
-.route-result{display:none}
+.travel-mode{margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
+.travel-mode>label{display:block;color:var(--ink);font-size:13px;font-weight:700}
+.mode-list{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}.mode-option{border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);padding:10px 13px;font:600 11px Manrope,Arial,sans-serif;cursor:pointer;transition:all .18s ease}.mode-option:hover{border-color:#8bcac0;transform:translateY(-1px)}.mode-option.active{border-color:var(--teal);background:var(--mint);color:var(--teal);box-shadow:0 0 0 2px #bde2da}.mode-hint{display:block;margin-top:9px;color:var(--muted);font-size:10px}.route-result{display:block;margin-top:14px;padding:13px 15px;border-radius:11px;background:var(--mint);color:var(--teal);font-size:12px;font-weight:700}
+body.dark-theme .mode-option{background:#203943;color:var(--ink);border-color:var(--line)}body.dark-theme .mode-option.active{background:#285b5b;color:#e7f2ef;border-color:#69b5aa}body.dark-theme .route-result{background:#183f42;color:#dcf4ed}
 .custom-interest{margin-top:14px}
 .custom-interest input::placeholder{color:#9aa9a6}
 .step{padding-bottom:3px;color:var(--teal);font-weight:800}
