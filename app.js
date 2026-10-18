@@ -196,27 +196,35 @@ const renderNearby = (center = [51.1283, 71.4304]) => {
 };
 loadPlaces(activeCenter).catch(() => { document.querySelector('#nearby-list').innerHTML = '<p class="empty-map">Не удалось загрузить места. Попробуйте ещё раз.</p>'; document.querySelector('#map-places').innerHTML = '<p class="empty-map">Сервис мест временно недоступен.</p>'; });
 document.querySelector('#area-search-btn').addEventListener('click', async () => { const query = document.querySelector('#area-query').value.trim(); if (!query) return showToast('Напиши район или точку'); try { const center = await geocode(query); activeCenter = center; cityMap.flyTo(center, 14); await loadPlaces(center, true); } catch (error) { showToast(error.message || 'Точку не удалось найти'); } });
-document.querySelector('#location-btn').addEventListener('click', () => {
+const setUserLocation = (coordinates) => {
+  currentLocation = coordinates;
+  document.querySelector('#area-query').value = 'Моё местоположение';
+  activeCenter = currentLocation;
+  cityMap.flyTo(currentLocation, 15, { duration: 1 });
+  loadPlaces(currentLocation, true).catch(() => showToast('Места рядом не удалось загрузить'));
+  if (userMarker) cityMap.removeLayer(userMarker);
+  userMarker = L.circleMarker(currentLocation, { radius: 9, color: '#fff', weight: 3, fillColor: '#e56f61', fillOpacity: 1 }).addTo(cityMap).bindPopup('<b>Вы здесь</b><br><small>Начало маршрута</small>').openPopup();
+  document.querySelector('#location-status').textContent = 'Местоположение определено — маршрут начнётся отсюда';
+  return currentLocation;
+};
+const requestUserLocation = () => new Promise((resolve, reject) => {
   const status = document.querySelector('#location-status');
-  if (!navigator.geolocation) return showToast('Этот браузер не поддерживает геолокацию');
-  if (!window.isSecureContext) { status.textContent = 'Геолокация работает только через http://localhost или HTTPS.'; return showToast('Запусти CityWalk через start-citywalk.cmd'); }
+  if (!navigator.geolocation) { status.textContent = 'Этот браузер не поддерживает геолокацию.'; reject(new Error('Геолокация недоступна')); return; }
+  if (!window.isSecureContext) { status.textContent = 'Геолокация работает только через http://localhost или HTTPS.'; reject(new Error('Открой проект через start-citywalk.cmd')); return; }
   status.textContent = 'Определяем ваше местоположение…';
   navigator.geolocation.getCurrentPosition((position) => {
-    currentLocation = [position.coords.latitude, position.coords.longitude];
-    document.querySelector('#area-query').value = 'Моё местоположение';
-    cityMap.flyTo(currentLocation, 15, { duration: 1 });
-    activeCenter = currentLocation;
-    loadPlaces(currentLocation, true).catch(() => showToast('Места рядом не удалось загрузить'));
-    if (userMarker) cityMap.removeLayer(userMarker);
-    userMarker = L.circleMarker(currentLocation, { radius: 8, color: '#fff', weight: 3, fillColor: '#e56f61', fillOpacity: 1 }).addTo(cityMap).bindPopup('<b>Вы находитесь здесь</b>').openPopup();
-    status.textContent = 'Местоположение определено — маршрут начнётся отсюда';
-    showToast('Местоположение найдено');
+    const coordinates = setUserLocation([position.coords.latitude, position.coords.longitude]);
+    showToast('Местоположение найдено — маршрут начнётся здесь');
+    resolve(coordinates);
   }, (error) => {
     const messages = { 1: 'Доступ к геопозиции запрещён. Разреши Location для localhost:8000 в настройках браузера.', 2: 'Координаты сейчас недоступны. Проверь Wi-Fi или GPS.', 3: 'Истекло время ожидания координат. Попробуй ещё раз на открытом месте.' };
     status.textContent = messages[error.code] || 'Не удалось определить местоположение.';
     showToast(error.code === 1 ? 'Разреши доступ к геопозиции в браузере' : 'Не удалось определить местоположение');
+    reject(error);
   }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
 });
+document.querySelector('#location-btn').addEventListener('click', () => requestUserLocation().catch(() => {}));
+setTimeout(() => { if (!currentLocation) requestUserLocation().catch(() => {}); }, 700);
 document.querySelectorAll('.mood').forEach((mood) => mood.addEventListener('click', () => setTimeout(() => loadPlaces(activeCenter).catch(() => showToast('Не удалось обновить фильтр')), 0)));
 document.querySelector('#clear-selection').addEventListener('click', () => { selectedPlaces = []; document.querySelectorAll('.nearby-place input').forEach((input) => { input.checked = false; }); if (routeLine) { cityMap.removeLayer(routeLine); routeLine = null; } routeResult.textContent = 'Выбор очищен'; showToast('Выбор мест сброшен'); });
 document.querySelector('#add-interest').addEventListener('click', () => { const input = document.querySelector('#custom-interest'); const value = input.value.trim(); if (!value) return showToast('Напиши свой интерес'); const button = document.createElement('button'); button.className = 'mood active custom-mood'; button.dataset.category = `custom-${Date.now()}`; button.innerHTML = `✦ <span>${value}</span>`; button.addEventListener('click', () => { button.classList.toggle('active'); renderNearby(); }); document.querySelector('.mood-list').appendChild(button); input.value = ''; showToast(`Интерес «${value}» добавлен`); });
@@ -235,13 +243,16 @@ const loadWeather = async () => {
 loadWeather();
 routeBuild.addEventListener('click', async () => {
   const area = document.querySelector('#area-query').value.trim();
-  if (!area) return showToast('Сначала укажите район или точку поиска');
+  if (!area && !currentLocation) return showToast('Разрешите геолокацию или укажите район');
   routeBuild.disabled = true;
   routeBuild.innerHTML = 'Ищем маршрут…';
   const time = document.querySelector('.time-option.active').textContent;
   const interests = [...document.querySelectorAll('.mood.active')].map((item) => item.textContent.trim()).join(', ');
   try {
-    const start = await geocode(area);
+    let start = currentLocation;
+    if (!start) {
+      try { start = await requestUserLocation(); } catch { start = await geocode(area); }
+    }
     const chosen = selectedPlaces.length ? selectedPlaces : locations.filter((place) => distance(start, place) < 3).slice(0, 3);
     if (!chosen.length) throw new Error('Выберите хотя бы одно место рядом');
     const waypoints = [start, ...chosen.map((place) => [place.lat, place.lng])];
