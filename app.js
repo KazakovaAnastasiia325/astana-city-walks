@@ -105,6 +105,20 @@ const showToast = (message) => {
   clearTimeout(window.toastTimer);
   window.toastTimer = setTimeout(() => toast.classList.remove('visible'), 2400);
 };
+const featuredFallback = [
+  { name: 'Байтерек', lat: 51.1283, lon: 71.4304, icon: '🏛️', description: 'Главный символ Астаны и одна из самых узнаваемых точек города.' },
+  { name: 'Национальный музей Казахстана', lat: 51.1256, lon: 71.4681, icon: '🏺', description: 'Большой музейный комплекс с экспозициями об истории и культуре Казахстана.' },
+  { name: 'Хан Шатыр', lat: 51.1326, lon: 71.4037, icon: '🏙️', description: 'Крупный торгово-развлекательный центр в необычном архитектурном здании.' },
+  { name: 'Дворец мира и согласия', lat: 51.1235, lon: 71.4694, icon: '🔺', description: 'Оригинальное здание в форме пирамиды рядом с важными городскими достопримечательностями.' },
+  { name: 'Территория EXPO', lat: 51.0907, lon: 71.4188, icon: '🌐', description: 'Современное пространство с архитектурными объектами и прогулочными зонами.' },
+  { name: 'Ботанический сад', lat: 51.0904, lon: 71.4171, icon: '🌳', description: 'Большая зелёная территория для спокойной прогулки и отдыха.' },
+];
+const renderPopular = (places) => {
+  const grid = document.querySelector('#popular-grid');
+  grid.innerHTML = places.map((place) => `<article class="popular-card"><div class="popular-photo">${place.image ? `<img src="${escapeHtml(place.image)}" alt="${escapeHtml(place.name)}" loading="lazy">` : `<div class="popular-photo-fallback">${place.icon || '✦'}</div>`}<span class="popular-badge">Популярное место</span></div><div class="popular-body"><h3>${escapeHtml(place.name)}</h3><p>${escapeHtml((place.description || 'Место для прогулки в Астане.').slice(0, 210))}${(place.description || '').length > 210 ? '…' : ''}</p><div class="popular-meta"><span class="popular-source">${place.image ? 'Фото Wikimedia' : 'Место на карте'}</span><button class="popular-open" data-lat="${place.lat}" data-lon="${place.lon}" data-name="${escapeHtml(place.name)}">На карте →</button></div>${place.article ? `<div class="popular-credit">Описание: <a href="${escapeHtml(place.article)}" target="_blank" rel="noreferrer">Wikipedia</a></div>` : ''}</div></article>`).join('');
+  grid.querySelectorAll('.popular-open').forEach((button) => button.addEventListener('click', () => { const lat = Number(button.dataset.lat); const lon = Number(button.dataset.lon); cityMap.flyTo([lat, lon], 16, { duration: .8 }); showToast(`Открыли на карте: ${button.dataset.name}`); document.querySelector('#map-section').scrollIntoView({ behavior: 'smooth', block: 'start' }); }));
+};
+fetch('/api/popular').then((response) => { if (!response.ok) throw new Error('popular'); return response.json(); }).then(renderPopular).catch(() => renderPopular(featuredFallback));
 
 const profileModal = document.querySelector('#profile-modal');
 const notesList = document.querySelector('#notes-list');
