@@ -21,23 +21,77 @@ document.querySelectorAll('.save').forEach((save) => save.addEventListener('clic
 
 const cityMap = L.map('city-map', { zoomControl: false }).setView([51.125, 71.43], 12.5);
 L.control.zoom({ position: 'bottomright' }).addTo(cityMap);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(cityMap);
-const locations = [
-  { name: 'Байтерек', type: 'Символ столицы', category: 'architecture photo', lat: 51.1283, lng: 71.4304, icon: '⌖' },
-  { name: 'Ботанический сад', type: 'Прогулки и природа', category: 'park photo', lat: 51.0904, lng: 71.4171, icon: '♣' },
-  { name: 'Территория EXPO', type: 'Архитектура и события', category: 'architecture photo', lat: 51.0907, lng: 71.4188, icon: '☕' },
-  { name: 'Национальный музей', type: 'История и культура', category: 'architecture photo', lat: 51.1256, lng: 71.4681, icon: '⌖' },
-  { name: 'Кофейня на Нуржол', type: 'Кофейня', category: 'cafe food', lat: 51.1288, lng: 71.4318, icon: '☕' },
-  { name: 'Парк Влюблённых', type: 'Парк', category: 'park photo', lat: 51.1322, lng: 71.4237, icon: '♣' },
-  { name: 'Арбат Астаны', type: 'Прогулочная улица', category: 'photo architecture', lat: 51.1343, lng: 71.4314, icon: '📸' },
-  { name: 'Театр оперы и балета', type: 'Культура и история', category: 'history architecture', lat: 51.1275, lng: 71.4272, icon: '🎭' },
-  { name: 'ТРЦ Хан Шатыр', type: 'Покупки и архитектура', category: 'shopping architecture', lat: 51.1326, lng: 71.4037, icon: '🛍️' },
-  { name: 'Набережная Ишима', type: 'Вечерняя прогулка', category: 'night photo park', lat: 51.1281, lng: 71.4358, icon: '🌙' },
-  { name: 'Ресторан на левом берегу', type: 'Еда и отдых', category: 'food', lat: 51.1267, lng: 71.4311, icon: '🍽️' },
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors &copy; CARTO' }).addTo(cityMap);
+let locations = [];
+let markers = [];
+const markerLayer = L.layerGroup().addTo(cityMap);
+const categoryInfo = {
+  cafe: { icon: '☕', label: 'Кафе и еда', filters: '["amenity"~"cafe|restaurant|fast_food|bar"]' },
+  architecture: { icon: '🏛️', label: 'Архитектура и культура', filters: '["tourism"~"museum|attraction|gallery|viewpoint"]' },
+  park: { icon: '🌳', label: 'Парки и природа', filters: '["leisure"~"park|garden|nature_reserve"]' },
+  photo: { icon: '📸', label: 'Места для фото', filters: '["tourism"~"attraction|viewpoint"]' },
+};
+const fallbackLocations = [
+  { id: 'fallback-baiterek', name: 'Байтерек', type: 'Архитектура и культура', category: 'architecture', lat: 51.1283, lng: 71.4304, icon: '🏛️' },
+  { id: 'fallback-museum', name: 'Национальный музей', type: 'Архитектура и культура', category: 'architecture', lat: 51.1256, lng: 71.4681, icon: '🏛️' },
+  { id: 'fallback-garden', name: 'Ботанический сад', type: 'Парки и природа', category: 'park', lat: 51.0904, lng: 71.4171, icon: '🌳' },
+  { id: 'fallback-expo', name: 'Территория EXPO', type: 'Архитектура и культура', category: 'architecture', lat: 51.0907, lng: 71.4188, icon: '🏛️' },
+  { id: 'fallback-park', name: 'Парк Влюблённых', type: 'Парки и природа', category: 'park', lat: 51.1322, lng: 71.4237, icon: '🌳' },
+  { id: 'fallback-cafe', name: 'Кофейни на Нуржол', type: 'Кафе и еда', category: 'cafe', lat: 51.1288, lng: 71.4318, icon: '☕' },
 ];
+const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
 const pinIcon = (icon) => L.divIcon({ className: 'custom-pin-wrap', html: `<div class="custom-pin"><span>${icon}</span></div>`, iconSize: [34, 34], iconAnchor: [17, 34], popupAnchor: [0, -30] });
-const markers = locations.map((place) => L.marker([place.lat, place.lng], { icon: pinIcon(place.icon) }).addTo(cityMap).bindPopup(`<b>${place.name}</b><br><span style="color:#74858b">${place.type}</span>`));
-document.querySelectorAll('.map-place').forEach((button) => button.addEventListener('click', () => { const index = Number(button.dataset.index); cityMap.flyTo([locations[index].lat, locations[index].lng], 15, { duration: 0.8 }); markers[index].openPopup(); }));
+const placeCategory = (tags = {}) => {
+  if (tags.amenity) return 'cafe';
+  if (tags.leisure) return 'park';
+  return tags.tourism ? 'architecture' : 'photo';
+};
+const formatPlace = (element) => {
+  const tags = element.tags || {};
+  const center = element.center || element;
+  const category = placeCategory(tags);
+  return { id: `${element.type}-${element.id}`, name: tags['name:ru'] || tags.name || tags['name:en'] || 'Место без названия', type: categoryInfo[category].label, category, lat: Number(center.lat), lng: Number(center.lon), icon: categoryInfo[category].icon };
+};
+const renderMapMarkers = () => {
+  markerLayer.clearLayers(); markers = [];
+  locations.forEach((place) => {
+    const marker = L.marker([place.lat, place.lng], { icon: pinIcon(place.icon) }).addTo(markerLayer).bindPopup(`<b>${escapeHtml(place.name)}</b><br><span style="color:#74858b">${escapeHtml(place.type)}</span>`);
+    markers.push(marker);
+  });
+};
+const overpassQuery = (center) => {
+  const selected = [...document.querySelectorAll('.mood.active')].map((item) => item.dataset.category).filter((category) => categoryInfo[category]);
+  const categories = selected.length ? selected : Object.keys(categoryInfo);
+  const statements = categories.map((category) => `nwr(around:3500,${center[0]},${center[1]})${categoryInfo[category].filters};`).join('');
+  return `[out:json][timeout:25];(${statements});out center tags;`;
+};
+const loadPlaces = async (center, notify = false) => {
+  if (!locations.length) { locations = fallbackLocations; renderMapMarkers(); renderNearby(center); }
+  let data;
+  const selected = [...document.querySelectorAll('.mood.active')].map((item) => item.dataset.category).filter((category) => categoryInfo[category]);
+  try {
+    const response = await fetch(`/api/places?lat=${center[0]}&lon=${center[1]}&categories=${encodeURIComponent(selected.join(','))}`);
+    if (!response.ok) throw new Error('Local places proxy error');
+    data = await response.json();
+  } catch (error) {
+    const endpoints = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+    for (const endpoint of endpoints) {
+      try { const response = await fetch(`${endpoint}?data=${encodeURIComponent(overpassQuery(center))}`); if (!response.ok) throw new Error('Overpass error'); data = await response.json(); break; } catch (fallbackError) { data = null; }
+    }
+  }
+  if (!data) {
+    locations = fallbackLocations;
+    renderMapMarkers(); renderNearby(center);
+    if (notify) showToast('Показали базовые места: сервис карт временно недоступен');
+    return;
+  }
+  const unique = new Map();
+  (data.elements || []).map(formatPlace).filter((place) => Number.isFinite(place.lat) && Number.isFinite(place.lng)).forEach((place) => { if (!unique.has(place.name)) unique.set(place.name, place); });
+  locations = [...unique.values()].sort((a, b) => distance(center, a) - distance(center, b)).slice(0, 80);
+  selectedPlaces = selectedPlaces.filter((selected) => locations.some((place) => place.id === selected.id));
+  renderMapMarkers(); renderNearby(center);
+  if (notify) showToast(`Нашли ${locations.length} мест рядом`);
+};
 
 const showToast = (message) => {
   let toast = document.querySelector('.toast');
@@ -116,15 +170,18 @@ const geocode = async (query) => {
   return [Number(places[0].lat), Number(places[0].lon)];
 };
 const distance = (a, b) => Math.hypot((a[0] - b.lat) * 111, (a[1] - b.lng) * 69);
+let activeCenter = [51.1283, 71.4304];
 const renderNearby = (center = [51.1283, 71.4304]) => {
-  const selectedCategories = [...document.querySelectorAll('.mood.active')].map((item) => item.dataset.category);
-  const nearby = locations.filter((place) => selectedCategories.some((category) => place.category.includes(category))).sort((a, b) => distance(center, a) - distance(center, b)).slice(0, 6);
+  const selectedCategories = [...document.querySelectorAll('.mood.active')].map((item) => item.dataset.category).filter((category) => categoryInfo[category]);
+  const nearby = locations.filter((place) => !selectedCategories.length || selectedCategories.includes(place.category)).sort((a, b) => distance(center, a) - distance(center, b)).slice(0, 10);
   document.querySelector('#nearby-count').textContent = `(${nearby.length})`;
-  document.querySelector('#nearby-list').innerHTML = nearby.map((place) => `<label class="nearby-place"><input type="checkbox" value="${place.name}" ${selectedPlaces.some((item) => item.name === place.name) ? 'checked' : ''}><span class="nearby-icon">${place.icon}</span><span><b>${place.name}</b><small>${place.type} · ${(distance(center, place)).toFixed(1)} км рядом</small></span></label>`).join('');
-  document.querySelectorAll('.nearby-place input').forEach((input) => input.addEventListener('change', () => { const place = locations.find((item) => item.name === input.value); selectedPlaces = input.checked ? [...selectedPlaces.filter((item) => item.name !== place.name), place] : selectedPlaces.filter((item) => item.name !== place.name); }));
+  document.querySelector('#nearby-list').innerHTML = nearby.length ? nearby.map((place) => `<label class="nearby-place"><input type="checkbox" value="${place.id}" ${selectedPlaces.some((item) => item.id === place.id) ? 'checked' : ''}><span class="nearby-icon">${place.icon}</span><span><b>${escapeHtml(place.name)}</b><small>${escapeHtml(place.type)} · ${(distance(center, place)).toFixed(1)} км рядом</small></span></label>`).join('') : '<p class="empty-map">По этим фильтрам мест не найдено.</p>';
+  document.querySelector('#map-places').innerHTML = nearby.length ? nearby.slice(0, 8).map((place) => `<button class="map-place" data-place-id="${place.id}"><span class="legend-dot">${place.icon}</span><span><b>${escapeHtml(place.name)}</b><small>${escapeHtml(place.type)} · ${(distance(center, place)).toFixed(1)} км</small></span><strong>›</strong></button>`).join('') : '<p class="empty-map">Места появятся после поиска.</p>';
+  document.querySelectorAll('.nearby-place input').forEach((input) => input.addEventListener('change', () => { const place = locations.find((item) => item.id === input.value); if (!place) return; selectedPlaces = input.checked ? [...selectedPlaces.filter((item) => item.id !== place.id), place] : selectedPlaces.filter((item) => item.id !== place.id); }));
+  document.querySelectorAll('.map-place[data-place-id]').forEach((button) => button.addEventListener('click', () => { const place = locations.find((item) => item.id === button.dataset.placeId); const marker = markers[locations.indexOf(place)]; if (place && marker) { cityMap.flyTo([place.lat, place.lng], 16, { duration: 0.8 }); marker.openPopup(); } }));
 };
-renderNearby();
-document.querySelector('#area-search-btn').addEventListener('click', async () => { const query = document.querySelector('#area-query').value.trim(); if (!query) return showToast('Напиши район или точку'); try { const center = await geocode(query); cityMap.flyTo(center, 14); renderNearby(center); showToast('Нашли места рядом'); } catch { showToast('Точку не удалось найти'); } });
+loadPlaces(activeCenter).catch(() => { document.querySelector('#nearby-list').innerHTML = '<p class="empty-map">Не удалось загрузить места. Попробуйте ещё раз.</p>'; document.querySelector('#map-places').innerHTML = '<p class="empty-map">Сервис мест временно недоступен.</p>'; });
+document.querySelector('#area-search-btn').addEventListener('click', async () => { const query = document.querySelector('#area-query').value.trim(); if (!query) return showToast('Напиши район или точку'); try { const center = await geocode(query); activeCenter = center; cityMap.flyTo(center, 14); await loadPlaces(center, true); } catch (error) { showToast(error.message || 'Точку не удалось найти'); } });
 document.querySelector('#location-btn').addEventListener('click', () => {
   const status = document.querySelector('#location-status');
   if (!navigator.geolocation) return showToast('Этот браузер не поддерживает геолокацию');
@@ -134,7 +191,8 @@ document.querySelector('#location-btn').addEventListener('click', () => {
     currentLocation = [position.coords.latitude, position.coords.longitude];
     document.querySelector('#area-query').value = 'Моё местоположение';
     cityMap.flyTo(currentLocation, 15, { duration: 1 });
-    renderNearby(currentLocation);
+    activeCenter = currentLocation;
+    loadPlaces(currentLocation, true).catch(() => showToast('Места рядом не удалось загрузить'));
     if (userMarker) cityMap.removeLayer(userMarker);
     userMarker = L.circleMarker(currentLocation, { radius: 8, color: '#fff', weight: 3, fillColor: '#e56f61', fillOpacity: 1 }).addTo(cityMap).bindPopup('<b>Вы находитесь здесь</b>').openPopup();
     status.textContent = 'Местоположение определено — маршрут начнётся отсюда';
@@ -145,7 +203,7 @@ document.querySelector('#location-btn').addEventListener('click', () => {
     showToast(error.code === 1 ? 'Разреши доступ к геопозиции в браузере' : 'Не удалось определить местоположение');
   }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
 });
-document.querySelectorAll('.mood').forEach((mood) => mood.addEventListener('click', () => setTimeout(() => renderNearby(), 0)));
+document.querySelectorAll('.mood').forEach((mood) => mood.addEventListener('click', () => setTimeout(() => loadPlaces(activeCenter).catch(() => showToast('Не удалось обновить фильтр')), 0)));
 document.querySelector('#clear-selection').addEventListener('click', () => { selectedPlaces = []; document.querySelectorAll('.nearby-place input').forEach((input) => { input.checked = false; }); if (routeLine) { cityMap.removeLayer(routeLine); routeLine = null; } routeResult.textContent = 'Выбор очищен'; showToast('Выбор мест сброшен'); });
 document.querySelector('#add-interest').addEventListener('click', () => { const input = document.querySelector('#custom-interest'); const value = input.value.trim(); if (!value) return showToast('Напиши свой интерес'); const button = document.createElement('button'); button.className = 'mood active custom-mood'; button.dataset.category = `custom-${Date.now()}`; button.innerHTML = `✦ <span>${value}</span>`; button.addEventListener('click', () => { button.classList.toggle('active'); renderNearby(); }); document.querySelector('.mood-list').appendChild(button); input.value = ''; showToast(`Интерес «${value}» добавлен`); });
 
