@@ -7,6 +7,12 @@ document.querySelectorAll('.time-option').forEach((option) => option.addEventLis
 
 document.querySelectorAll('.save').forEach((save) => save.addEventListener('click', () => {
   save.textContent = save.textContent === '♡' ? '♥' : '♡';
+  const name = save.closest('.route-card').querySelector('h3').textContent;
+  let saved = JSON.parse(localStorage.getItem('citywalk-saved') || '[]');
+  saved = save.textContent === '♥' ? [...new Set([...saved, name])] : saved.filter((item) => item !== name);
+  localStorage.setItem('citywalk-saved', JSON.stringify(saved));
+  savedPlaces = saved;
+  if (typeof renderSaved === 'function') renderSaved();
 }));
 
 const cityMap = L.map('city-map', { zoomControl: false }).setView([51.125, 71.43], 12.5);
@@ -48,18 +54,32 @@ const notesCount = document.querySelector('#notes-count');
 const noteInput = document.querySelector('#note-input');
 const savedCount = document.querySelector('#saved-count');
 let notes = JSON.parse(localStorage.getItem('citywalk-notes') || '[]');
+const savedList = document.querySelector('#saved-list');
+let savedPlaces = JSON.parse(localStorage.getItem('citywalk-saved') || '[]');
+const renderSaved = () => {
+  savedCount.textContent = savedPlaces.length;
+  savedList.innerHTML = savedPlaces.length ? savedPlaces.map((place) => `<button class="saved-place" data-saved="${place}"><span>♡</span><b>${place}</b><strong>›</strong></button>`).join('') : '<p class="empty-notes">Нажми ♡ на карточке места, чтобы сохранить его.</p>';
+  savedList.querySelectorAll('[data-saved]').forEach((item) => item.addEventListener('click', () => { const place = locations.find((location) => location.name === item.dataset.saved); if (place) { cityMap.flyTo([place.lat, place.lng], 16); markers[locations.indexOf(place)].openPopup(); profileModal.classList.remove('open'); } }));
+};
 const renderNotes = () => {
   notesCount.textContent = notes.length;
   notesList.innerHTML = notes.length ? notes.map((note, index) => `<div class="note-item"><span>✦</span><p>${note.replace(/[<>]/g, '')}</p><button data-note="${index}" aria-label="Удалить заметку">×</button></div>`).join('') : '<p class="empty-notes">Пока нет заметок. Добавь первую идею прогулки.</p>';
   notesList.querySelectorAll('[data-note]').forEach((button) => button.addEventListener('click', () => { notes.splice(Number(button.dataset.note), 1); localStorage.setItem('citywalk-notes', JSON.stringify(notes)); renderNotes(); }));
 };
-const openProfile = () => { profileModal.classList.add('open'); profileModal.setAttribute('aria-hidden', 'false'); renderNotes(); };
+const storedName = localStorage.getItem('citywalk-name') || '';
+const storedAvatar = localStorage.getItem('citywalk-avatar') || 'ДМ';
+document.querySelector('#profile-name').value = storedName;
+document.querySelector('#profile-title').textContent = storedName ? `Привет, ${storedName}` : 'Мой профиль';
+document.querySelector('#avatar-current').textContent = storedAvatar;
+document.querySelectorAll('#avatar-picker [data-avatar]').forEach((avatar) => avatar.addEventListener('click', () => { const value = avatar.dataset.avatar; localStorage.setItem('citywalk-avatar', value); document.querySelector('#avatar-current').textContent = value; showToast('Аватар обновлён'); }));
+document.querySelector('#name-save').addEventListener('click', () => { const name = document.querySelector('#profile-name').value.trim(); localStorage.setItem('citywalk-name', name); document.querySelector('#profile-title').textContent = name ? `Привет, ${name}` : 'Мой профиль'; showToast('Имя сохранено'); });
+const openProfile = () => { profileModal.classList.add('open'); profileModal.setAttribute('aria-hidden', 'false'); renderNotes(); renderSaved(); };
 document.querySelector('#profile-open').addEventListener('click', openProfile);
 document.querySelector('#profile-close').addEventListener('click', () => { profileModal.classList.remove('open'); profileModal.setAttribute('aria-hidden', 'true'); });
 profileModal.addEventListener('click', (event) => { if (event.target === profileModal) profileModal.classList.remove('open'); });
 document.querySelector('#note-add').addEventListener('click', () => { const value = noteInput.value.trim(); if (!value) return showToast('Напиши текст заметки'); notes.unshift(value); localStorage.setItem('citywalk-notes', JSON.stringify(notes)); noteInput.value = ''; renderNotes(); showToast('Заметка сохранена'); });
 noteInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') document.querySelector('#note-add').click(); });
-savedCount.textContent = document.querySelectorAll('.save').length;
+renderSaved();
 renderNotes();
 document.querySelectorAll('.field').forEach((field) => field.addEventListener('click', () => {
   const strong = field.querySelector('strong');
