@@ -71,7 +71,9 @@ const renderNotes = () => {
   notesList.querySelectorAll('[data-note]').forEach((button) => button.addEventListener('click', () => { notes.splice(Number(button.dataset.note), 1); localStorage.setItem('citywalk-notes', JSON.stringify(notes)); renderNotes(); }));
 };
 const storedName = localStorage.getItem('citywalk-name') || '';
-const storedAvatar = ['🐱', '🦊', '🐼', '🐨', '🐧'].includes(localStorage.getItem('citywalk-avatar')) ? localStorage.getItem('citywalk-avatar') : '🐱';
+const avatarOptions = [['🐱', 'Кот-путешественник'], ['🐶', 'Собака-путешественник'], ['🦒', 'Жираф-путешественник'], ['🦏', 'Носорог-путешественник'], ['🦩', 'Фламинго-путешественник']];
+document.querySelectorAll('#avatar-picker [data-avatar]').forEach((avatar, index) => { const [icon, title] = avatarOptions[index]; avatar.dataset.avatar = icon; avatar.textContent = icon; avatar.title = title; });
+const storedAvatar = avatarOptions.map(([icon]) => icon).includes(localStorage.getItem('citywalk-avatar')) ? localStorage.getItem('citywalk-avatar') : '🐱';
 document.querySelector('#profile-name').value = storedName;
 document.querySelector('#profile-title').textContent = storedName ? `Привет, ${storedName}` : 'Мой профиль';
 document.querySelector('#avatar-current').textContent = storedAvatar;
