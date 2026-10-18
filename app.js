@@ -42,7 +42,25 @@ const showToast = (message) => {
   window.toastTimer = setTimeout(() => toast.classList.remove('visible'), 2400);
 };
 
-document.querySelector('.profile-btn').addEventListener('click', () => showToast('Профиль будет доступен в следующей версии'));
+const profileModal = document.querySelector('#profile-modal');
+const notesList = document.querySelector('#notes-list');
+const notesCount = document.querySelector('#notes-count');
+const noteInput = document.querySelector('#note-input');
+const savedCount = document.querySelector('#saved-count');
+let notes = JSON.parse(localStorage.getItem('citywalk-notes') || '[]');
+const renderNotes = () => {
+  notesCount.textContent = notes.length;
+  notesList.innerHTML = notes.length ? notes.map((note, index) => `<div class="note-item"><span>✦</span><p>${note.replace(/[<>]/g, '')}</p><button data-note="${index}" aria-label="Удалить заметку">×</button></div>`).join('') : '<p class="empty-notes">Пока нет заметок. Добавь первую идею прогулки.</p>';
+  notesList.querySelectorAll('[data-note]').forEach((button) => button.addEventListener('click', () => { notes.splice(Number(button.dataset.note), 1); localStorage.setItem('citywalk-notes', JSON.stringify(notes)); renderNotes(); }));
+};
+const openProfile = () => { profileModal.classList.add('open'); profileModal.setAttribute('aria-hidden', 'false'); renderNotes(); };
+document.querySelector('#profile-open').addEventListener('click', openProfile);
+document.querySelector('#profile-close').addEventListener('click', () => { profileModal.classList.remove('open'); profileModal.setAttribute('aria-hidden', 'true'); });
+profileModal.addEventListener('click', (event) => { if (event.target === profileModal) profileModal.classList.remove('open'); });
+document.querySelector('#note-add').addEventListener('click', () => { const value = noteInput.value.trim(); if (!value) return showToast('Напиши текст заметки'); notes.unshift(value); localStorage.setItem('citywalk-notes', JSON.stringify(notes)); noteInput.value = ''; renderNotes(); showToast('Заметка сохранена'); });
+noteInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') document.querySelector('#note-add').click(); });
+savedCount.textContent = document.querySelectorAll('.save').length;
+renderNotes();
 document.querySelectorAll('.field').forEach((field) => field.addEventListener('click', () => {
   const strong = field.querySelector('strong');
   const values = strong.textContent.includes('час') ? ['◷ До 1 часа⌄', '◷ До 3 часов⌄', '◷ Весь день⌄'] : ['♧ Пешком⌄', '♧ На велосипеде⌄', '♧ На транспорте⌄'];
