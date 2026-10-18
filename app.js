@@ -141,6 +141,17 @@ document.querySelector('#location-btn').addEventListener('click', () => {
 document.querySelectorAll('.mood').forEach((mood) => mood.addEventListener('click', () => setTimeout(() => renderNearby(), 0)));
 document.querySelector('#clear-selection').addEventListener('click', () => { selectedPlaces = []; document.querySelectorAll('.nearby-place input').forEach((input) => { input.checked = false; }); if (routeLine) { cityMap.removeLayer(routeLine); routeLine = null; } routeResult.textContent = 'Выбор очищен'; showToast('Выбор мест сброшен'); });
 document.querySelector('#add-interest').addEventListener('click', () => { const input = document.querySelector('#custom-interest'); const value = input.value.trim(); if (!value) return showToast('Напиши свой интерес'); const button = document.createElement('button'); button.className = 'mood active custom-mood'; button.dataset.category = `custom-${Date.now()}`; button.innerHTML = `✦ <span>${value}</span>`; button.addEventListener('click', () => { button.classList.toggle('active'); renderNearby(); }); document.querySelector('.mood-list').appendChild(button); input.value = ''; showToast(`Интерес «${value}» добавлен`); });
+
+const weatherCodes = { 0: ['☀️', 'Ясно'], 1: ['🌤️', 'Преимущественно ясно'], 2: ['⛅', 'Переменная облачность'], 3: ['☁️', 'Облачно'], 45: ['🌫️', 'Туман'], 48: ['🌫️', 'Изморозь'], 51: ['🌦️', 'Морось'], 53: ['🌦️', 'Морось'], 55: ['🌧️', 'Сильная морось'], 61: ['🌧️', 'Небольшой дождь'], 63: ['🌧️', 'Дождь'], 65: ['🌧️', 'Сильный дождь'], 71: ['🌨️', 'Небольшой снег'], 73: ['❄️', 'Снег'], 75: ['❄️', 'Сильный снег'], 80: ['🌦️', 'Ливни'], 81: ['🌧️', 'Ливни'], 82: ['⛈️', 'Сильные ливни'], 95: ['⛈️', 'Гроза'], 96: ['⛈️', 'Гроза с градом'], 99: ['⛈️', 'Гроза с градом'] };
+const formatTime = (value) => value ? new Date(value).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '—';
+const loadWeather = async () => {
+  try {
+    const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=51.1694&longitude=71.4491&current=temperature_2m,wind_speed_10m,is_day,weather_code&daily=sunrise,sunset&timezone=Asia%2FAlmaty&forecast_days=1');
+    const data = await response.json(); const current = data.current; const [icon, text] = weatherCodes[current.weather_code] || ['🌡️', 'Погода обновлена'];
+    document.querySelector('#weather-icon').textContent = current.is_day ? icon : '🌙'; document.querySelector('#weather-temp').textContent = `${Math.round(current.temperature_2m)}°`; document.querySelector('#weather-text').textContent = current.is_day ? text : 'Сейчас ночь'; document.querySelector('#weather-wind').textContent = `${Math.round(current.wind_speed_10m)} км/ч`; document.querySelector('#weather-sun').textContent = `Рассвет ${formatTime(data.daily.sunrise[0])} · закат ${formatTime(data.daily.sunset[0])}`; document.querySelector('#weather-art').classList.toggle('night', !current.is_day);
+  } catch { document.querySelector('#weather-text').textContent = 'Погода временно недоступна'; }
+};
+loadWeather();
 routeBuild.addEventListener('click', async () => {
   const area = document.querySelector('#area-query').value.trim();
   if (!area) return showToast('Сначала укажите район или точку поиска');
