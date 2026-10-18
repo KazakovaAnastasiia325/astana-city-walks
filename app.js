@@ -1,5 +1,9 @@
 const moods = document.querySelectorAll('.mood');
 moods.forEach((mood) => mood.addEventListener('click', () => mood.classList.toggle('active')));
+const themeToggle = document.querySelector('#theme-toggle');
+const setTheme = (theme) => { document.body.classList.toggle('dark-theme', theme === 'dark'); themeToggle.textContent = theme === 'dark' ? '☀️' : '☾'; localStorage.setItem('citywalk-theme', theme); };
+setTheme(localStorage.getItem('citywalk-theme') || 'light');
+themeToggle.addEventListener('click', () => setTheme(document.body.classList.contains('dark-theme') ? 'light' : 'dark'));
 document.querySelectorAll('.time-option').forEach((option) => option.addEventListener('click', () => {
   document.querySelectorAll('.time-option').forEach((item) => item.classList.remove('active'));
   option.classList.add('active');
@@ -145,6 +149,8 @@ document.querySelector('#add-interest').addEventListener('click', () => { const 
 
 const weatherCodes = { 0: ['☀️', 'Ясно'], 1: ['🌤️', 'Преимущественно ясно'], 2: ['⛅', 'Переменная облачность'], 3: ['☁️', 'Облачно'], 45: ['🌫️', 'Туман'], 48: ['🌫️', 'Изморозь'], 51: ['🌦️', 'Морось'], 53: ['🌦️', 'Морось'], 55: ['🌧️', 'Сильная морось'], 61: ['🌧️', 'Небольшой дождь'], 63: ['🌧️', 'Дождь'], 65: ['🌧️', 'Сильный дождь'], 71: ['🌨️', 'Небольшой снег'], 73: ['❄️', 'Снег'], 75: ['❄️', 'Сильный снег'], 80: ['🌦️', 'Ливни'], 81: ['🌧️', 'Ливни'], 82: ['⛈️', 'Сильные ливни'], 95: ['⛈️', 'Гроза'], 96: ['⛈️', 'Гроза с градом'], 99: ['⛈️', 'Гроза с градом'] };
 const formatTime = (value) => value ? new Date(value).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '—';
+const updateClock = () => { document.querySelector('#weather-clock').textContent = `Сейчас ${new Intl.DateTimeFormat('ru-RU', { timeZone: 'Asia/Almaty', hour: '2-digit', minute: '2-digit' }).format(new Date())}`; };
+updateClock(); setInterval(updateClock, 1000);
 const loadWeather = async () => {
   try {
     const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=51.1694&longitude=71.4491&current=temperature_2m,wind_speed_10m,is_day,weather_code&daily=sunrise,sunset&timezone=Asia%2FAlmaty&forecast_days=1');

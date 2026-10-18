@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="interactions.css" />
   <link rel="stylesheet" href="extra.css" />
   <link rel="stylesheet" href="avatar.css" />
+  <link rel="stylesheet" href="theme.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 </head>
 <body>
@@ -19,7 +20,7 @@
     <header class="topbar">
       <a class="brand" href="#top"><span class="brand-mark">✦</span><span>City<span>Walk</span></span></a>
       <nav class="desktop-nav"><a class="active" href="#routes">Маршруты</a><a href="#places">Места</a><a href="#about">О сервисе</a></nav>
-      <button class="profile-btn" aria-label="Профиль" id="profile-open">🐱</button>
+      <div class="top-actions"><button class="theme-toggle" id="theme-toggle" aria-label="Переключить тему">☾</button><button class="profile-btn" aria-label="Профиль" id="profile-open">🐱</button></div>
     </header>
 
     <main id="top">
@@ -30,7 +31,7 @@
           <p>Выбери время и интересы — CityWalk соберёт прогулку по городу именно для тебя.</p>
           <div class="hero-actions"><a class="primary-btn" href="#builder">Создать маршрут <span>→</span></a><a class="text-btn" href="#routes">Смотреть подборки</a></div>
         </div>
-        <div class="hero-art" id="weather-art"><div class="sun"></div><div class="cityline cityline-back"></div><div class="cityline cityline-front"></div><div class="hero-note note-one"><span id="weather-icon">☀️</span> <b id="weather-temp">—°</b><small id="weather-text">Загрузка погоды…</small></div><div class="hero-note note-two">💨 <b id="weather-wind">— км/ч</b><small id="weather-sun">Рассвет — · закат —</small></div></div>
+        <div class="hero-art" id="weather-art"><div class="sun"></div><div class="cityline cityline-back"></div><div class="cityline cityline-front"></div><div class="hero-note note-one"><span id="weather-icon">☀️</span> <b id="weather-temp">—°</b><small id="weather-text">Загрузка погоды…</small></div><div class="hero-note note-two">💨 <b id="weather-wind">— км/ч</b><small id="weather-clock">Сейчас —</small><small id="weather-sun">Рассвет — · закат —</small></div></div>
       </section>
 
       <section class="builder section-width" id="builder">
