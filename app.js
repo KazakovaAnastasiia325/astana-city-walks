@@ -67,11 +67,12 @@ const renderNotes = () => {
   notesList.querySelectorAll('[data-note]').forEach((button) => button.addEventListener('click', () => { notes.splice(Number(button.dataset.note), 1); localStorage.setItem('citywalk-notes', JSON.stringify(notes)); renderNotes(); }));
 };
 const storedName = localStorage.getItem('citywalk-name') || '';
-const storedAvatar = localStorage.getItem('citywalk-avatar') || 'ДМ';
+const storedAvatar = ['🐱', '🦊', '🐼', '🐨', '🐧'].includes(localStorage.getItem('citywalk-avatar')) ? localStorage.getItem('citywalk-avatar') : '🐱';
 document.querySelector('#profile-name').value = storedName;
 document.querySelector('#profile-title').textContent = storedName ? `Привет, ${storedName}` : 'Мой профиль';
 document.querySelector('#avatar-current').textContent = storedAvatar;
-document.querySelectorAll('#avatar-picker [data-avatar]').forEach((avatar) => avatar.addEventListener('click', () => { const value = avatar.dataset.avatar; localStorage.setItem('citywalk-avatar', value); document.querySelector('#avatar-current').textContent = value; showToast('Аватар обновлён'); }));
+document.querySelector('#profile-open').textContent = storedAvatar;
+document.querySelectorAll('#avatar-picker [data-avatar]').forEach((avatar) => avatar.addEventListener('click', () => { const value = avatar.dataset.avatar; localStorage.setItem('citywalk-avatar', value); document.querySelector('#avatar-current').textContent = value; document.querySelector('#profile-open').textContent = value; showToast('Аватар обновлён'); }));
 document.querySelector('#name-save').addEventListener('click', () => { const name = document.querySelector('#profile-name').value.trim(); localStorage.setItem('citywalk-name', name); document.querySelector('#profile-title').textContent = name ? `Привет, ${name}` : 'Мой профиль'; showToast('Имя сохранено'); });
 const openProfile = () => { profileModal.classList.add('open'); profileModal.setAttribute('aria-hidden', 'false'); renderNotes(); renderSaved(); };
 document.querySelector('#profile-open').addEventListener('click', openProfile);
