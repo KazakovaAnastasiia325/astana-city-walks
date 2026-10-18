@@ -4,10 +4,22 @@ const themeToggle = document.querySelector('#theme-toggle');
 const setTheme = (theme) => { document.body.classList.toggle('dark-theme', theme === 'dark'); themeToggle.textContent = theme === 'dark' ? '☀️' : '☾'; localStorage.setItem('citywalk-theme', theme); };
 setTheme(localStorage.getItem('citywalk-theme') || 'light');
 themeToggle.addEventListener('click', () => setTheme(document.body.classList.contains('dark-theme') ? 'light' : 'dark'));
+const getTimeMinutes = () => {
+  const custom = Number(document.querySelector('#custom-time')?.value);
+  if (custom > 0) return Math.min(480, custom);
+  const active = document.querySelector('.time-option.active')?.textContent || '2 часа';
+  const hours = Number(active.match(/\d+/)?.[0] || 2);
+  return hours * 60;
+};
+const updateTimeHint = () => { const minutes = getTimeMinutes(); const stops = minutes <= 60 ? 2 : minutes <= 120 ? 3 : 5; document.querySelector('#time-hint').textContent = `За ${minutes >= 60 ? `${Math.floor(minutes / 60)} ч` : `${minutes} мин`} рекомендуем выбрать до ${stops} мест`; };
 document.querySelectorAll('.time-option').forEach((option) => option.addEventListener('click', () => {
   document.querySelectorAll('.time-option').forEach((item) => item.classList.remove('active'));
   option.classList.add('active');
+  document.querySelector('#custom-time').value = '';
+  updateTimeHint();
 }));
+document.querySelector('#custom-time').addEventListener('input', updateTimeHint);
+updateTimeHint();
 
 document.querySelectorAll('.save').forEach((save) => save.addEventListener('click', () => {
   save.textContent = save.textContent === '♡' ? '♥' : '♡';
@@ -26,9 +38,9 @@ let locations = [];
 let markers = [];
 const markerLayer = L.layerGroup().addTo(cityMap);
 const categoryInfo = {
-  cafe: { icon: '☕', label: 'Кафе и еда', filters: '["amenity"~"cafe|restaurant|fast_food|bar"]' },
-  architecture: { icon: '🏛️', label: 'Архитектура и культура', filters: '["tourism"~"museum|attraction|gallery|viewpoint"]' },
-  park: { icon: '🌳', label: 'Парки и природа', filters: '["leisure"~"park|garden|nature_reserve"]' },
+  cafe: { icon: '☕', label: 'Кафе и еда', filters: '["amenity"~"cafe|restaurant|fast_food|bar|bakery|ice_cream"]' },
+  architecture: { icon: '🏛️', label: 'Архитектура и культура', filters: '["tourism"~"museum|attraction|gallery|viewpoint|theme_park"]' },
+  park: { icon: '🌳', label: 'Парки и природа', filters: '["leisure"~"park|garden|nature_reserve|playground"]' },
   photo: { icon: '📸', label: 'Места для фото', filters: '["tourism"~"attraction|viewpoint"]' },
 };
 const fallbackLocations = [
@@ -250,15 +262,18 @@ routeBuild.addEventListener('click', async () => {
   if (!area && !currentLocation) return showToast('Разрешите геолокацию или укажите район');
   routeBuild.disabled = true;
   routeBuild.innerHTML = 'Ищем маршрут…';
-  const time = document.querySelector('.time-option.active').textContent;
+  const timeMinutes = getTimeMinutes();
+  const time = document.querySelector('#custom-time').value ? `${timeMinutes} минут` : document.querySelector('.time-option.active').textContent;
   const interests = [...document.querySelectorAll('.mood.active')].map((item) => item.textContent.trim()).join(', ');
   try {
     let start = currentLocation;
     if (!start) {
       try { start = await requestUserLocation(); } catch { start = await geocode(area); }
     }
-    const chosen = selectedPlaces.length ? selectedPlaces : locations.filter((place) => distance(start, place) < 3).slice(0, 3);
+    const maxStops = timeMinutes <= 60 ? 2 : timeMinutes <= 120 ? 3 : 5;
+    const chosen = selectedPlaces.length ? selectedPlaces.slice(0, maxStops) : locations.filter((place) => distance(start, place) < Math.max(2, timeMinutes / 60 * 3)).slice(0, maxStops);
     if (!chosen.length) throw new Error('Выберите хотя бы одно место рядом');
+    if (selectedPlaces.length > maxStops) showToast(`Для этого времени взяли ближайшие ${maxStops} места`);
     const waypoints = [start, ...chosen.map((place) => [place.lat, place.lng])];
     let routeData;
     try {
