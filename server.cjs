@@ -67,7 +67,7 @@ const proxyPlaces = async (req, res) => {
   }
   return sendJson(res, 502, { error: 'Places service unavailable' });
 };
-http.createServer(async (req, res) => {
+const server = http.createServer(async (req, res) => {
   if (req.url.startsWith('/api/popular')) return proxyPopular(res);
   if (req.url.startsWith('/api/places')) return proxyPlaces(req, res);
   const requested = decodeURIComponent(req.url.split('?')[0]);
@@ -75,4 +75,10 @@ http.createServer(async (req, res) => {
   if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); return res.end('Not found'); }
   res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream' });
   fs.createReadStream(file).pipe(res);
-}).listen(8000, '127.0.0.1', () => console.log('CityWalk: http://localhost:8000'));
+});
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') console.error('Порт 8000 уже занят. Закройте предыдущий CityWalk и запустите снова.');
+  else console.error('Ошибка сервера:', error.message);
+  process.exitCode = 1;
+});
+server.listen(8000, '127.0.0.1', () => console.log('CityWalk: http://localhost:8000'));

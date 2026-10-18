@@ -91,10 +91,7 @@ const loadPlaces = async (center, notify = false) => {
     if (!response.ok) throw new Error('Local places proxy error');
     data = await response.json();
   } catch (error) {
-    const endpoints = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
-    for (const endpoint of endpoints) {
-      try { const response = await fetch(`${endpoint}?data=${encodeURIComponent(overpassQuery(center))}`); if (!response.ok) throw new Error('Overpass error'); data = await response.json(); break; } catch (fallbackError) { data = null; }
-    }
+    data = { elements: [] };
   }
   if (!data) {
     locations = fallbackLocations;
@@ -216,10 +213,12 @@ const renderNearby = (center = [51.1283, 71.4304]) => {
   document.querySelectorAll('.map-place[data-place-id]').forEach((button) => button.addEventListener('click', () => { const place = locations.find((item) => item.id === button.dataset.placeId); const marker = markers[locations.indexOf(place)]; if (place && marker) { cityMap.flyTo([place.lat, place.lng], 16, { duration: 0.8 }); marker.openPopup(); } }));
 };
 loadPlaces(activeCenter).catch(() => { document.querySelector('#nearby-list').innerHTML = '<p class="empty-map">Не удалось загрузить места. Попробуйте ещё раз.</p>'; document.querySelector('#map-places').innerHTML = '<p class="empty-map">Сервис мест временно недоступен.</p>'; });
-document.querySelector('#area-search-btn').addEventListener('click', async () => { const query = document.querySelector('#area-query').value.trim(); if (!query) return showToast('Напиши район или точку'); try { const center = await geocode(query); activeCenter = center; cityMap.flyTo(center, 14); await loadPlaces(center, true); } catch (error) { showToast(error.message || 'Точку не удалось найти'); } });
+document.querySelector('#area-search-btn').addEventListener('click', async () => { const query = document.querySelector('#area-query').value.trim(); if (!query) return showToast('Напиши район или точку'); try { const center = await geocode(query); selectedPlaces = []; if (routeLine) { cityMap.removeLayer(routeLine); routeLine = null; } activeCenter = center; cityMap.flyTo(center, 14); await loadPlaces(center, true); } catch (error) { showToast(error.message || 'Точку не удалось найти'); } });
 const setUserLocation = (coordinates) => {
   currentLocation = coordinates;
   document.querySelector('#area-query').value = 'Моё местоположение';
+  selectedPlaces = [];
+  if (routeLine) { cityMap.removeLayer(routeLine); routeLine = null; }
   activeCenter = currentLocation;
   cityMap.flyTo(currentLocation, 15, { duration: 1 });
   loadPlaces(currentLocation, true).catch(() => showToast('Места рядом не удалось загрузить'));
