@@ -58,6 +58,7 @@ document.querySelectorAll('.route-card').forEach((card) => card.addEventListener
 let routeLine;
 let selectedPlaces = [];
 let currentLocation = null;
+let userMarker = null;
 const routeBuild = document.querySelector('#route-build');
 const routeResult = document.querySelector('#route-result');
 const geocode = async (query) => {
@@ -82,16 +83,22 @@ document.querySelector('#area-search-btn').addEventListener('click', async () =>
 document.querySelector('#location-btn').addEventListener('click', () => {
   const status = document.querySelector('#location-status');
   if (!navigator.geolocation) return showToast('Этот браузер не поддерживает геолокацию');
+  if (!window.isSecureContext) { status.textContent = 'Геолокация работает только через http://localhost или HTTPS.'; return showToast('Запусти CityWalk через start-citywalk.cmd'); }
   status.textContent = 'Определяем ваше местоположение…';
   navigator.geolocation.getCurrentPosition((position) => {
     currentLocation = [position.coords.latitude, position.coords.longitude];
     document.querySelector('#area-query').value = 'Моё местоположение';
     cityMap.flyTo(currentLocation, 15, { duration: 1 });
     renderNearby(currentLocation);
-    L.circleMarker(currentLocation, { radius: 8, color: '#fff', weight: 3, fillColor: '#e56f61', fillOpacity: 1 }).addTo(cityMap).bindPopup('<b>Вы находитесь здесь</b>').openPopup();
+    if (userMarker) cityMap.removeLayer(userMarker);
+    userMarker = L.circleMarker(currentLocation, { radius: 8, color: '#fff', weight: 3, fillColor: '#e56f61', fillOpacity: 1 }).addTo(cityMap).bindPopup('<b>Вы находитесь здесь</b>').openPopup();
     status.textContent = 'Местоположение определено — маршрут начнётся отсюда';
     showToast('Местоположение найдено');
-  }, () => { status.textContent = 'Не удалось получить геопозицию. Проверь разрешение браузера.'; showToast('Разрешите доступ к местоположению'); }, { enableHighAccuracy: true, timeout: 10000 });
+  }, (error) => {
+    const messages = { 1: 'Доступ к геопозиции запрещён. Разреши Location для localhost:8000 в настройках браузера.', 2: 'Координаты сейчас недоступны. Проверь Wi-Fi или GPS.', 3: 'Истекло время ожидания координат. Попробуй ещё раз на открытом месте.' };
+    status.textContent = messages[error.code] || 'Не удалось определить местоположение.';
+    showToast(error.code === 1 ? 'Разреши доступ к геопозиции в браузере' : 'Не удалось определить местоположение');
+  }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
 });
 document.querySelectorAll('.mood').forEach((mood) => mood.addEventListener('click', () => setTimeout(() => renderNearby(), 0)));
 document.querySelector('#clear-selection').addEventListener('click', () => { selectedPlaces = []; document.querySelectorAll('.nearby-place input').forEach((input) => { input.checked = false; }); if (routeLine) { cityMap.removeLayer(routeLine); routeLine = null; } routeResult.textContent = 'Выбор очищен'; showToast('Выбор мест сброшен'); });
