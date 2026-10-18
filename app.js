@@ -21,7 +21,7 @@ document.querySelectorAll('.save').forEach((save) => save.addEventListener('clic
 
 const cityMap = L.map('city-map', { zoomControl: false }).setView([51.125, 71.43], 12.5);
 L.control.zoom({ position: 'bottomright' }).addTo(cityMap);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors &copy; CARTO' }).addTo(cityMap);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a>' }).addTo(cityMap);
 let locations = [];
 let markers = [];
 const markerLayer = L.layerGroup().addTo(cityMap);
